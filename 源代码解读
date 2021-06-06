@@ -1,0 +1,92 @@
+0、在SpringApplication的构造函数中将启动类放入primarySources中，然后设置启动类型为Servlet，初始化initializer为ApplicationContextInitializer.class如下几种：
+         org.springframework.boot.context.ConfigurationWarningsApplicationContextInitializer
+          org.springframework.boot.context.ContextIdApplicationContextInitializer
+          org.springframework.boot.context.config.DelegatingApplicationContextInitializer
+          org.springframework.boot.web.context.ServerPortInfoApplicationContextInitializer    
+          org.springframework.boot.autoconfigure.SharedMetadataReaderFactoryContextInitializer
+          org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener
+a>设置listeners类型为ApplicationListener主要类型如下：
+        org.springframework.boot.ClearCachesApplicationListener
+        org.springframework.boot.builder.ParentContextCloserApplicationListener
+        org.springframework.boot.context.FileEncodingApplicationListener
+        org.springframework.boot.context.config.AnsiOutputApplicationListener
+        org.springframework.boot.context.config.ConfigFileApplicationListener
+        org.springframework.boot.context.config.DelegatingApplicationListener
+        org.springframework.boot.context.logging.ClasspathLoggingApplicationListener
+        org.springframework.boot.context.logging.LoggingApplicationListener
+        org.springframework.boot.liquibase.LiquibaseServiceLocatorApplicationListener
+        org.springframework.boot.autoconfigure.BackgroundPreinitializer
+1、run 方法开始之后，首先根据上下文获取环境配置StandardServletEnvironment然后获取激活配置信息
+applyInitializers注入进去ApplicationContextInitializer：
+      org.springframework.boot.context.ConfigurationWarningsApplicationContextInitializer
+      org.springframework.boot.context.ContextIdApplicationContextInitializer
+      org.springframework.boot.context.config.DelegatingApplicationContextInitializer
+       org.springframework.boot.web.context.ServerPortInfoApplicationContextInitializer
+       org.springframework.boot.autoconfigure.SharedMetadataReaderFactoryContextInitializer
+       org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListenerr
+2、在StandardServletEnvironment中注册环境对象（StandardServletEnvironment）
+3、绑定springApplication对象：Binder.get(environment).bind("spring.main", Bindable.ofInstance(this));
+4、配置忽略bean信息
+5、配置获取Banner信息
+6、根据配置信息获取applicationContext：AnnotationConfigServletWebServerApplicationContext，同时使用默认的beanfactory（DefaultListableBeanFactory）此时注意构造函数中的AnnotatedBeanDefinitionReader(AnnotationConfigServletWebServerApplicationContext)类和ClassPathBeanDefinitionScanner(AnnotationConfigServletWebServerApplicationContext)。
+首先看下AnnotatedBeanDefinitionReader。该类构建了AnnotationBeanNameGenerator和AnnotationScopeMetadataResolver。最后调用AnnotationConfigUtils.registerAnnotationConfigProcessors(this.registry);方法进行AnnotationConfigProcessors的注册：
+a>在beanfactory中设置依赖比较器AnnotationAwareOrderComparator()
+b>在beanfactory中设置AutowireCandidateResolver：ContextAnnotationAutowireCandidateResolver()
+c>设置postProcessor：将如下这些类当作bean放入beanfactory中的beanDefinitionMap：
+    org.springframework.context.annotation.internalConfigurationAnnotationProcessor
+    org.springframework.context.annotation.internalAutowiredAnnotationProcessor
+    org.springframework.context.annotation.internalRequiredAnnotationProcessor
+    org.springframework.context.annotation.internalCommonAnnotationProcessor
+    org.springframework.context.event.internalEventListenerProcessor
+    org.springframework.context.event.internalEventListenerFactory
+ d>ClassPathBeanDefinitionScanner中创建BeanDefinitionDefaults();将@Component,JSR-250 'javax.annotation.ManagedBean' ,JSR-330 'javax.inject.Named' 的注解进行注册为bean
+7、获取异常报告类org.springframework.boot.diagnostics.FailureAnalyzers，当整个加载出现问题之后汇报给他们
+8、准备context环境prepareContext：
+    a>设置环境信息：在context、reader和scanner中设置Environment，
+    b>postProcessApplicationContext():
+    c>applyInitializers():设置Initializers，其中：
+        C0>DelegatingApplicationContextInitializer是
+        C1>ContextIdApplicationContextInitializer是设置contextid是applicationContext.setId(contextId.getId());//默认启动类的小写，同时在beanfactory中注册bean的name为org.springframework.boot.context.ContextIdApplicationContextInitializer$ContextId，实例为contextid；
+        C2>ConfigurationWarningsApplicationContextInitializer是在applictionContext中的beanFactoryPostProcessors的list集合中set设置ConfigurationWarningsApplicationContextInitializer.ComponentScanPackageCheck
+        C3>ServerPortInfoApplicationContextInitializer是在applictionContext中把它做为applicationListener
+        C4>SharedMetadataReaderFactoryContextInitializer是在applictionContext中的beanFactoryPostProcessors的list集合中set SharedMetadataReaderFactoryContextInitializer.CachingMetadataReaderFactoryPostProcessor()
+        C5>ConditionEvaluationReportLoggingListener是把ConditionEvaluationReportLoggingListener.ConditionEvaluationReportListener()做为applicationListener;同时在ConditionEvaluationReportLoggingListener中设置ConditionEvaluationReport
+    d>EventPublishingRunListener中的context设置contextPrepared，这块是个空方法实现，可以自定义处理
+    e>获取ActiveProfiles，如果没有设置则是{“default”}
+    f>在beanfactory中设置springApplicationArguments的bean，实际上是将args的参数封装了下
+    g>在beanfactory中设置springBootBanner的bean
+    h>将启动类注册进入beanfactory；在beanDefinitionMap中存储。其中由于启动类增加了@Component注解，所以将被加入mate信息
+9、刷新context上下文信息：
+    a>prepareRefresh():->刷新beanfactory：主要是这只setSerializationId的值为应用ID
+    b>prepareBeanFactory:
+        b1>设置classloader
+        b2>设置StandardBeanExpressionResolver
+        B3>设置ResourceEditorRegistrar
+        B4>在beanpostprocessor中添加ApplicationContextAwareProcessor
+        B5>忽略EnvironmentAware、EmbeddedValueResolverAware、ResourceLoaderAware、ApplicationEventPublisherAware、MessageSourceAware、ApplicationContextAware这些bean
+        B6>添加BeanFactory（beanfactory）ResourceLoader、ApplicationEventPublisher、ApplicationContext（AnnotationConfigServletWebServerApplicationContext）
+        B7>在beanfactory中增加beanpostprocessor：ApplicationListenerDetector（AnnotationConfigServletWebServerApplicationContext）
+        B8>在beanfactory中注册bean的name为environment，值为StandardServletEnvironment
+        B9>在beanfactory中注册bean的name为systemProperties，值为系统参数System.getProperties()
+        B10>在beanfactory中注册bean的name为systemEnvironment，值为System.getenv()的 系统变量
+10、postbeanfactory：
+    a>在beanfactory中的beanpostprocessor增加WebApplicationContextServletContextAwareProcessor(AnnotationConfigServletWebServerApplicationContext)
+    b>beanfactory中忽略interface的bean为ServletContextAware
+11、invokeBeanFactoryPostProcessors（DefaultListableBeanFactory）：
+    a>获取applicationContext中的beanFactoryPostProcessors：
+        A1>SharedMetadataReaderFactoryContextInitializer.CachingMetadataReaderFactoryPostProcessor类根据internalConfigurationAnnotationProcessor的beanName获取ConfigurationClassPostProcessor，然后将其property的metadataReaderFactory值设置为
+internalCachingMetadataReaderFactory的beanname的实体
+        A2>PostProcessorRegistrationDelegate
+    b>获取org.springframework.context.annotation.internalConfigurationAnnotationProcessor的beanname
+    c>invokeBeanDefinitionRegistryPostProcessors:在ConfigurationClassPostProcessor中设置beanfactory的id。同时处理configbeandefinitions（ConfigurationClassPostProcessor.processConfigBeanDefinitions）,将启动类的放入configCandidates中,
+在ClassPathBeanDefinitionScanner类resourcePattern中设置扫描路径 
+然后获取basepackaege是否为空如果不为空则返回**/*.class，然后获取启动类的包名，根据根路径的包名开始扫描包下的@Component注解。
+然后获取到所有的component的包之后，扫描该包下的所有@Bean注解
+由于@SpringBootApplication继承自@EnableAutoCOnfiguration注解，该注解@Import({AutoConfigurationImportSelector.class})，所以根据spring.factories配置的EnableAutoConfiguration注解配置的Configuration自动注入进来。actutarjun
+C1>处理其余为处理的BeanDefinition
+C2>注册org.springframework.context.annotation.ConfigurationClassPostProcessor.importRegistry bean
+C3>处理ConfigurationClassPostProcessor类，该类的processConfigBeanDefinitions方法里包含了enhanceConfigurationClasses方法，将自定义类和已经加载的类通过cglib生成子类对其加强
+C4>创建appserver
+C5>在AbstractApplicationEventMulticaster.ListenerRetriever中添加之前初始化的listener；然后获取org.springframework.boot.autoconfigure.internalCachingMetadataReaderFactory和mvcResourceUrlProvider两个beanname放入AbstractApplicationEventMulticaster.ListenerRetriever的applicationListenerBeans中
+C6>启动web容器
+12、通知所有的listener容器启动完毕
