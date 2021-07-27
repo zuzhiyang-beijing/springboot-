@@ -399,10 +399,9 @@ private void processInterfaces(ConfigurationClass configClass, SourceClass sourc
 		Set<MethodMetadata> beanMethods = retrieveBeanMethodMetadata(ifc);
 		for (MethodMetadata methodMetadata : beanMethods) {
 			/**
-			 * 只要此方法不是抽象类型的，则可以放入集合中待后续处理 default static 方法
+			 * 只要此方法不是抽象类型的，则可以放入集合中待后续处理 default static 方法，主要应用于java8的接口方法中的bean中
 			 */
 			if (!methodMetadata.isAbstract()) {
-				// A default method or other concrete method on a Java 8+ interface...
 				configClass.addBeanMethod(new BeanMethod(methodMetadata, configClass));
 			}
 		}
