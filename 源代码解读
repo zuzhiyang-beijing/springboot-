@@ -60,12 +60,16 @@ c>设置postProcessor：将如下这些类当作bean放入beanfactory中的beanD
     a>prepareRefresh():->刷新beanfactory：主要是这只setSerializationId的值为应用ID
     b>prepareBeanFactory:
         b1>设置classloader
-        b2>设置StandardBeanExpressionResolver
-        B3>设置ResourceEditorRegistrar
-        B4>在beanpostprocessor中添加ApplicationContextAwareProcessor
+        b2>设置StandardBeanExpressionResolver，主要处理Spring Expression Language（SPEL）SpEL使用#{...}作为定界符，所有在大框号中的字符都将被认为是SpEL，类似如下：
+        <property name="url" value="#{db.url}"/>
+        B3>设置ResourceEditorRegistrar,主要设置Bean的properties设置，主要实现接口PropertyEditorRegistry。设置不同的类型的转化操作
+        B4>在beanpostprocessor中添加ApplicationContextAwareProcessor，改了实现了BeanPostProcessor接口，主要在Bean实例化之前出调用自身的invokeAwareInterfaces方法对相关的bean设置资源信息
+        主要设置的接口有EnvironmentAware、EmbeddedValueResolverAware、ResourceLoaderAware、ApplicationEventPublisherAware、MessageSourceAware、ApplicationContextAware；由于这些接口已经设置，
+        所以需要将这些接口依赖忽略掉
         B5>忽略EnvironmentAware、EmbeddedValueResolverAware、ResourceLoaderAware、ApplicationEventPublisherAware、MessageSourceAware、ApplicationContextAware这些bean
-        B6>添加BeanFactory（beanfactory）ResourceLoader、ApplicationEventPublisher、ApplicationContext（AnnotationConfigServletWebServerApplicationContext）
+        B6>添加BeanFactory（beanfactory）、ResourceLoader（AnnotationConfigServletWebServerApplicationContext）、ApplicationEventPublisher（AnnotationConfigServletWebServerApplicationContext）、ApplicationContext（AnnotationConfigServletWebServerApplicationContext）这几个依赖关系
         B7>在beanfactory中增加beanpostprocessor：ApplicationListenerDetector（AnnotationConfigServletWebServerApplicationContext）
+           如果beanfactory包含loadTimeWeaver，则增加LoadTimeWeaverAwareProcessor的beanPostProcessor类型
         B8>在beanfactory中注册bean的name为environment，值为StandardServletEnvironment
         B9>在beanfactory中注册bean的name为systemProperties，值为系统参数System.getProperties()
         B10>在beanfactory中注册bean的name为systemEnvironment，值为System.getenv()的 系统变量
