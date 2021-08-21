@@ -1,1 +1,12 @@
+1、BeanFactoryPostProcessor：BeanFactory后置处理器，是对BeanDefinition对象进行修改。（BeanDefinition：存储bean标签的信息，用来生成bean实例）
+2、在bean实例之前修改修改bean的配置元数据，可以实现order接口通过设置'order'属性来确定各个BeanFactoryPostProcessor执行顺序
+3、spring中内置了一些BeanFactoryPostProcessor实现类：
+org.springframework.beans.factory.config.PropertyPlaceholderConfigurer
+org.springframework.beans.factory.config.PropertyOverrideConfigurer
+org.springframework.beans.factory.config.CustomEditorConfigurer：
 
+
+在 中通过beanFactory.getBeanNamesForType(BeanFactoryPostProcessor.class, true, false)，
+获取spring配置文件中定义的所有实现BeanFactoryPostProcessor接口的bean，
+然后根据优先级进行排序，
+之后对于每个BeanFactoryPostProcessor，调用postProcessBeanFactory方法
