@@ -8,7 +8,7 @@ org.springframework.beans.factory.annotation.RequiredAnnotationBeanPostProcessor
 org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor：支持@Autowired注解的注入
 org.springframework.orm.jpa.support.PersistenceAnnotationBeanPostProcessor：支持@PersistenceUnit和@PersistenceContext注解的注入
 org.springframework.context.support.ApplicationContextAwareProcessor：用来为bean注入ApplicationContext等容器对象
-
+在DefaultListableBeanFactory中的preInstantiateSingletons方法如下
 @Override
 	public void preInstantiateSingletons() throws BeansException {
 		if (logger.isTraceEnabled()) {
