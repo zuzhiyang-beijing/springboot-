@@ -1,1 +1,46 @@
 此部分关于@import加载解析
+处理@import注解的开始位置在ConfigurationClassParser的
+// Process any @Import annotations
+		processImports(configClass, sourceClass, getImports(sourceClass), true);
+import注解主要由3中类型，
+1、普通的@import（xx.class）：此时xx.class类似于在类上增加了@Configuration注解一样，但加载顺序应该是先从已有类的Configuration先加载后处理@import，
+详细可以查阅ConfigurationClassParser的过程
+2、实现ImportSelector接口：通过ImportSelector方式我们可以不操作BeanDefinitionRegistry 对象，只需要告诉容器我们需要注入类的完整类名即可完成Bean的加载；如果这个类实现了DeferredImportSelector接口
+（DeferredImportSelector这个接口也实现了ImportSelector接口），则需要
+3、实现了ImportBeanDefinitionRegistrar接口：主要自己定义和封装BeanDefinition，实现此接口的类会回调postProcessBeanDefinitionRegistry方法，注册到spring容器中。
+把bean注入到spring容器不止有 @Service @Component等注解方式；还可以实现此接口
+        else if (candidate.isAssignable(ImportBeanDefinitionRegistrar.class)) {
+						// Candidate class is an ImportBeanDefinitionRegistrar ->
+						// delegate to it to register additional bean definitions
+						Class<?> candidateClass = candidate.loadClass();
+						ImportBeanDefinitionRegistrar registrar =
+								BeanUtils.instantiateClass(candidateClass, ImportBeanDefinitionRegistrar.class);
+						ParserStrategyUtils.invokeAwareMethods(
+								registrar, this.environment, this.resourceLoader, this.registry);
+						configClass.addImportBeanDefinitionRegistrar(registrar, currentSourceClass.getMetadata());
+					}
+          
+AspectJAutoProxyRegistrar这个类实现了ImportBeanDefinitionRegistrar接口，实现了动态代理的工作
+/**
+	 * Register, escalate, and configure the AspectJ auto proxy creator based on the value
+	 * of the @{@link EnableAspectJAutoProxy#proxyTargetClass()} attribute on the importing
+	 * {@code @Configuration} class.
+	 */
+	@Override
+	public void registerBeanDefinitions(
+			AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
+
+		AopConfigUtils.registerAspectJAnnotationAutoProxyCreatorIfNecessary(registry);
+
+		AnnotationAttributes enableAspectJAutoProxy =
+				AnnotationConfigUtils.attributesFor(importingClassMetadata, EnableAspectJAutoProxy.class);
+		if (enableAspectJAutoProxy != null) {
+			if (enableAspectJAutoProxy.getBoolean("proxyTargetClass")) {
+				AopConfigUtils.forceAutoProxyCreatorToUseClassProxying(registry);
+			}
+			if (enableAspectJAutoProxy.getBoolean("exposeProxy")) {
+				AopConfigUtils.forceAutoProxyCreatorToExposeProxy(registry);
+			}
+		}
+	}
+  
