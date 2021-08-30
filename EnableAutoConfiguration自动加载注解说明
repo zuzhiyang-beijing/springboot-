@@ -28,4 +28,23 @@ public void parse(Set<BeanDefinitionHolder> configCandidates) {
     //在这里处理AutoConfigurationImportSelector
 		this.deferredImportSelectorHandler.process();
 	}
-查看processDeferredImportSelectors()方法处理
+查看processDeferredImportSelectors()方法处理，该方法寿险获取DeferredImportSelector，因为AutoConfigurationImportSelector实现了改接口，所以寿险看下selectImports，改方法获取classpath中
+的EnableAutoConfiguration.class映射的自动加载来进行处理
+然后执行process方法如下：
+
+		@Override
+		public void process(AnnotationMetadata annotationMetadata,
+				DeferredImportSelector deferredImportSelector) {
+			Assert.state(
+					deferredImportSelector instanceof AutoConfigurationImportSelector,
+					() -> String.format("Only %s implementations are supported, got %s",
+							AutoConfigurationImportSelector.class.getSimpleName(),
+							deferredImportSelector.getClass().getName()));
+			AutoConfigurationEntry autoConfigurationEntry = ((AutoConfigurationImportSelector) deferredImportSelector)
+					.getAutoConfigurationEntry(getAutoConfigurationMetadata(),
+							annotationMetadata);
+			this.autoConfigurationEntries.add(autoConfigurationEntry);
+			for (String importClassName : autoConfigurationEntry.getConfigurations()) {
+				this.entries.putIfAbsent(importClassName, annotationMetadata);
+			}
+		}
