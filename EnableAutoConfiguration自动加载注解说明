@@ -1,1 +1,4 @@
-
+1、@EnableAutoConfiguration注解中增加了@Import(AutoConfigurationImportSelector.class)
+2、所以自启动类的ConfigurationClassPostProcessor的doProcessConfigurationClass方法的processImports(configClass, sourceClass, getImports(sourceClass), true);开始
+3、首先getImports根据启动类获取所有的import的value，然后循环添加到
+4、回到ConfigurationClassPostProcessor类的parse方法中，查看processDeferredImportSelectors()方法处理
